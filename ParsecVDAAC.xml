@@ -1,0 +1,33 @@
+<service>
+  <id>ParsecVDAAC</id>
+  <name>ParsecVDA - Always Connected</name>
+  <description>Starts exactly 3 Parsec virtual displays; removes them cleanly on stop.</description>
+
+  <!-- Run as LocalSystem to have proper permissions -->
+  <serviceaccount>
+    <domain></domain>
+    <user>LocalSystem</user>
+    <allowservicelogon>true</allowservicelogon>
+  </serviceaccount>
+
+  <!-- Start: Run wrapper script that handles cleanup on exit -->
+  <executable>%WINDIR%\System32\WindowsPowerShell\v1.0\powershell.exe</executable>
+  <arguments>-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%BASE%\service-wrapper.ps1"</arguments>
+  <workingdirectory>%BASE%</workingdirectory>
+
+  <!-- Log output for debugging -->
+  <log mode="roll-by-size">
+    <sizeThreshold>1024</sizeThreshold>
+    <keepFiles>3</keepFiles>
+  </log>
+
+  <!-- Stop: Just kill the PowerShell wrapper - it will clean up monitors automatically -->
+  <stopparentprocessfirst>true</stopparentprocessfirst>
+
+  <!-- Give stop time for cleanup -->
+  <stoptimeout>10000</stoptimeout>
+
+  <!-- Do not auto-restart to avoid duplicates -->
+  <onfailure action="none"/>
+  <resetfailure>0</resetfailure>
+</service>
