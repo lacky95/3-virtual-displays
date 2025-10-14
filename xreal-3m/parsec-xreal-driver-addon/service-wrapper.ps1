@@ -4,6 +4,13 @@
 $ErrorActionPreference = 'Stop'
 $exe = "C:\Program Files\ParsecVDA - Always Connected\ParsecVDA - Always Connected.exe"
 
+# Custom display resolution (width, height, refresh rate)
+# Based on ratio 1295x1087 (1.191352345906164) scaled to 1920 width
+# Height = 1920 / 1.191352345906164 = 1612
+$customWidth = 1920
+$customHeight = 1612
+$customHz = 60
+
 # Cleanup function
 function Stop-AllMonitors {
     try {
@@ -34,9 +41,30 @@ try {
     Stop-Process -Name "ParsecVDA - Always Connected" -Force -ErrorAction SilentlyContinue
 } catch {}
 
-# Ensure device is enabled
+# Disable device first to ensure clean state
 try { 
-    pnputil /enable-device "ROOT\Parsec\VDA" 2>&1 | Out-Null 
+    pnputil /disable-device "ROOT\Parsec\VDA" 2>&1 | Out-Null
+    Start-Sleep -Seconds 1
+} catch {}
+
+# Set custom resolution in registry BEFORE enabling device
+try {
+    $regPath = "HKLM:\SOFTWARE\Parsec\vdd\0"
+    if (-not (Test-Path $regPath)) {
+        New-Item -Path $regPath -Force | Out-Null
+    }
+    # Set custom resolution as separate DWORD values
+    Set-ItemProperty -Path $regPath -Name "width" -Value $customWidth -Type DWord
+    Set-ItemProperty -Path $regPath -Name "height" -Value $customHeight -Type DWord
+    Set-ItemProperty -Path $regPath -Name "hz" -Value $customHz -Type DWord
+} catch {
+    Write-Warning "Failed to set custom resolution in registry: $_"
+}
+
+# Now enable device - it will read the registry values
+try { 
+    pnputil /enable-device "ROOT\Parsec\VDA" 2>&1 | Out-Null
+    Start-Sleep -Seconds 1
 } catch {}
 
 if (-not (Test-Path -LiteralPath $exe)) {
